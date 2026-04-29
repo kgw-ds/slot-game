@@ -81,28 +81,26 @@
             border: 4px solid var(--neon-blue);
             border-radius: 30px;
             box-shadow: 0 0 20px var(--neon-blue), inset 0 0 20px var(--neon-blue);
-            padding: 40px; /* 여백은 유지 */
+            padding: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(10px);
-            margin-bottom: 50px; /* 버튼과의 간격 유지 */
+            margin-bottom: 50px;
         }
 
         .slot {
-            /* === 과일 크기를 엄청 크게 조정 === */
-            font-size: 25rem; /* 기존 12rem에서 25rem으로 확대 */
+            /* === 과일 크기 및 프레임 크기 확대 (적용됨) === */
+            font-size: 25rem; 
             line-height: 1;
-            /* === 프레임 크기도 함께 확대 === */
-            width: 500px; /* 기존 250px에서 500px로 확대 */
-            height: 500px; /* 기존 250px에서 500px로 확대 */
+            width: 500px; 
+            height: 500px; 
             background: #fff;
             border-radius: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
-            /* 돌아가는 느낌을 위한 트랜지션 */
             transition: transform 0.1s;
         }
 
@@ -116,11 +114,10 @@
             background-color: #ff3366;
             color: white;
             font-family: 'Jua', sans-serif;
-            /* === 버튼 크기도 전체 균형을 위해 약간 확대 === */
-            font-size: 5rem; /* 기존 4rem에서 5rem으로 확대 */
-            padding: 25px 100px; /* 기존보다 패딩 확대 */
+            font-size: 5rem; 
+            padding: 25px 100px; 
             border: none;
-            border-radius: 60px; /* 기존 50px에서 60px로 조정 */
+            border-radius: 60px; 
             cursor: pointer;
             box-shadow: 0 15px 0 #990033, 0 20px 20px rgba(0,0,0,0.5);
             transition: all 0.1s ease;
@@ -175,18 +172,16 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // ==========================================
-        // 1. 여기에 본인의 Firebase 설정값을 입력하세요!
-        // ==========================================
+        // 입력해주신 Firebase 설정값
         const firebaseConfig = {
-  apiKey: "AIzaSyBN9D_2fzQe2rFpoWqhzHmtFZxcCKaUhok",
-  authDomain: "slot-ee50a.firebaseapp.com",
-  projectId: "slot-ee50a",
-  storageBucket: "slot-ee50a.firebasestorage.app",
-  messagingSenderId: "676721791908",
-  appId: "1:676721791908:web:9964fd3646e60abe766731",
-  measurementId: "G-4K8HW92DFE"
-};
+            apiKey: "AIzaSyBN9D_2fzQe2rFpoWqhzHmtFZxcCKaUhok",
+            authDomain: "slot-ee50a.firebaseapp.com",
+            projectId: "slot-ee50a",
+            storageBucket: "slot-ee50a.firebasestorage.app",
+            messagingSenderId: "676721791908",
+            appId: "1:676721791908:web:9964fd3646e60abe766731",
+            measurementId: "G-4K8HW92DFE"
+        };
 
         // Firebase 초기화
         const app = initializeApp(firebaseConfig);
@@ -220,13 +215,24 @@
             }
         });
 
-        // 스핀 이벤트 감지 (양쪽 화면 동기화의 핵심)
+        // 🌟 수정된 부분 1: 스핀 이벤트 감지 및 네트워크 지연 보정
         onValue(spinRef, (snapshot) => {
             const triggerTime = snapshot.val();
+            
             // 새로운 스핀 이벤트가 발생했고, 현재 돌고 있지 않다면
             if (triggerTime && triggerTime > lastTriggerTime) {
                 lastTriggerTime = triggerTime;
-                startSpinning();
+
+                // 서버를 거쳐 오느라 늦은 시간(네트워크 지연) 계산
+                let delay = Date.now() - triggerTime;
+                
+                // 만약 기기 간 시계가 안 맞아서 음수가 나오거나 렉이 심하면 예외 처리
+                if (delay < 0 || delay > 2000) delay = 0; 
+                
+                // 원래 스핀 시간(2500ms)에서 지연된 시간만큼 빼서 멈추는 타이밍을 강제로 맞춤
+                const targetDuration = 2500 - delay;
+
+                startSpinning(targetDuration);
             }
         });
 
@@ -245,8 +251,8 @@
             });
         });
 
-        // 슬롯 애니메이션 함수 (각 화면 독립 실행)
-        function startSpinning() {
+        // 🌟 수정된 부분 2: 보정된 시간(duration)을 전달받아 애니메이션 실행
+        function startSpinning(duration) {
             isSpinning = true;
             startBtn.disabled = true;
             statusText.innerText = "돌아가는 중... 🌀";
@@ -259,7 +265,7 @@
                 spinCount++;
             }, 50);
 
-            // 2.5초 후 애니메이션 정지 및 랜덤 결과 도출
+            // 고정된 2.5초가 아니라, 지연 보정된 시간(duration) 뒤에 멈춤!
             setTimeout(() => {
                 clearInterval(spinInterval);
                 slotFruit.classList.remove('blur-effect');
@@ -276,7 +282,7 @@
                 isSpinning = false;
                 startBtn.disabled = false;
                 statusText.innerText = "연결됨 🟢";
-            }, 2500); // 2.5초
+            }, duration); 
         }
 
         // 축하 폭죽 효과 (Confetti)
