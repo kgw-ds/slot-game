@@ -4,30 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUMAN FRUIT SLOT</title>
-    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         :root {
             --neon-pink: #ff00ff;
             --neon-blue: #00ffff;
-            --bg-color: #1a0b2e;
+            --neon-yellow: #ffff00;
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-color);
-            background-image: radial-gradient(circle at center, #2a114f 0%, #1a0b2e 100%);
+            /* 카지노/슬롯머신 테마의 배경 이미지와 어두운 오버레이 씌우기 */
+            background-image: linear-gradient(rgba(15, 5, 24, 0.85), rgba(15, 5, 24, 0.85)), url('https://images.unsplash.com/photo-1596838132731-3301c3fd4317?q=80&w=2070');
+            background-size: cover;
+            background-position: center;
             color: white;
-            font-family: 'Jua', sans-serif;
+            font-family: 'Black Han Sans', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             overflow: hidden;
-            /* 16:9 비율 유지 및 중앙 정렬 */
             aspect-ratio: 16 / 9;
             max-width: 100vw;
             margin: 0 auto;
@@ -39,35 +40,38 @@
             top: 20px;
             left: 20px;
             font-size: 1.5rem;
-            color: #fff;
-            text-shadow: 0 0 5px #fff;
-            background: rgba(255, 255, 255, 0.1);
+            color: var(--neon-yellow);
+            text-shadow: 0 0 5px var(--neon-yellow);
+            background: rgba(0, 0, 0, 0.5);
             padding: 10px 20px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
+            border-radius: 10px;
+            border: 1px solid var(--neon-yellow);
+            letter-spacing: 2px;
         }
 
-        /* 메인 타이틀 (네온사인 효과) */
+        /* 메인 타이틀 (오락실 네온사인 효과) */
         .title {
-            font-size: 6rem;
+            font-size: 6.5rem;
             margin: 0;
             text-align: center;
             color: #fff;
+            letter-spacing: 5px;
             text-shadow: 
                 0 0 5px #fff, 
                 0 0 10px #fff, 
                 0 0 20px var(--neon-pink), 
                 0 0 40px var(--neon-pink), 
                 0 0 80px var(--neon-pink);
-            animation: pulsate 1.5s infinite alternate;
+            animation: pulsate 1s infinite alternate;
         }
 
         .subtitle {
             font-size: 2.5rem;
             margin-top: 10px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             color: var(--neon-blue);
             text-shadow: 0 0 10px var(--neon-blue);
+            letter-spacing: 2px;
         }
 
         @keyframes pulsate {
@@ -75,87 +79,94 @@
             0% { text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 6px var(--neon-pink), 0 0 10px var(--neon-pink); }
         }
 
-        /* 슬롯 프레임 (유리 패널 느낌) */
+        /* 슬롯 프레임 */
         .slot-container {
-            background: rgba(255, 255, 255, 0.05);
-            border: 4px solid var(--neon-blue);
-            border-radius: 30px;
-            box-shadow: 0 0 20px var(--neon-blue), inset 0 0 20px var(--neon-blue);
-            padding: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            margin-bottom: 50px;
-        }
-
-        .slot {
-            /* === 과일 크기 및 프레임 크기 확대 (적용됨) === */
-            font-size: 25rem; 
-            line-height: 1;
-            width: 500px; 
-            height: 500px; 
-            background: #fff;
+            background: rgba(0, 0, 0, 0.8);
+            border: 8px solid var(--neon-blue);
             border-radius: 20px;
+            box-shadow: 0 0 30px var(--neon-blue), inset 0 0 30px var(--neon-blue);
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
+        /* 🌟 슬롯머신 창 (넘치는 부분은 숨김 처리) */
+        .slot-window {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #ffffff 0%, #dddddd 100%);
+            border-radius: 10px;
+            overflow: hidden; /* 영역 밖으로 굴러가는 과일 숨기기 */
+            position: relative;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.6);
+        }
+
+        /* 위아래로 굴러갈 긴 띠(릴) */
+        .slot-reel {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        /* 각각의 과일 한 칸 */
+        .slot-item {
+            width: 500px;
+            height: 500px; /* 창 크기와 똑같이 맞춤 */
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
-            transition: transform 0.1s;
-        }
-
-        .blur-effect {
-            filter: blur(5px);
-            transform: scaleY(1.2);
+            font-size: 25rem;
+            line-height: 1;
+            flex-shrink: 0;
         }
 
         /* 3D 아케이드 시작 버튼 */
         .start-btn {
-            background-color: #ff3366;
+            background-color: var(--neon-pink);
             color: white;
-            font-family: 'Jua', sans-serif;
-            font-size: 5rem; 
-            padding: 25px 100px; 
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 5rem;
+            padding: 20px 100px;
             border: none;
-            border-radius: 60px; 
+            border-radius: 15px;
             cursor: pointer;
-            box-shadow: 0 15px 0 #990033, 0 20px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 15px 0 #990066, 0 20px 20px rgba(0,0,0,0.8);
             transition: all 0.1s ease;
             text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 0px #000;
         }
 
         .start-btn:active, .start-btn.pressed {
-            box-shadow: 0 5px 0 #990033, 0 10px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 5px 0 #990066, 0 10px 10px rgba(0,0,0,0.8);
             transform: translateY(10px);
         }
 
         .start-btn:disabled {
-            background-color: #888;
-            box-shadow: 0 15px 0 #555, 0 20px 20px rgba(0,0,0,0.5);
+            background-color: #555;
+            color: #888;
+            box-shadow: 0 15px 0 #222, 0 20px 20px rgba(0,0,0,0.8);
             cursor: not-allowed;
+            text-shadow: none;
         }
 
-        /* 진동 애니메이션 (결과 나올 때) */
+        /* 결과 나올 때 흔들림 */
         @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
+            0% { transform: translate(2px, 2px) rotate(0deg); }
+            20% { transform: translate(-3px, 0px) rotate(2deg); }
+            40% { transform: translate(3px, -2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 2px) rotate(0deg); }
+            80% { transform: translate(3px, 2px) rotate(2deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
         }
         .shake-animation {
-            animation: shake 0.5s;
-            animation-iteration-count: 1;
+            animation: shake 0.4s ease-in-out;
         }
     </style>
 </head>
 <body>
+
+    <audio id="sound-spin" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
 
     <div id="status-bar">📡 방: <span id="room-name">알 수 없음</span> | 상태: <span id="connection-status">연결 대기 중... 🟡</span></div>
 
@@ -163,16 +174,19 @@
     <div class="subtitle">사람 슬롯과 함께 돌아가는 과일 슬롯머신!</div>
 
     <div class="slot-container">
-        <div class="slot" id="slot-fruit">❓</div>
+        <div class="slot-window">
+            <div class="slot-reel" id="slot-reel">
+                <div class="slot-item">❓</div>
+            </div>
+        </div>
     </div>
 
     <button class="start-btn" id="start-btn">START!</button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 입력해주신 Firebase 설정값
         const firebaseConfig = {
             apiKey: "AIzaSyBN9D_2fzQe2rFpoWqhzHmtFZxcCKaUhok",
             authDomain: "slot-ee50a.firebaseapp.com",
@@ -183,17 +197,18 @@
             measurementId: "G-4K8HW92DFE"
         };
 
-        // Firebase 초기화
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // UI 요소 가져오기
-        const slotFruit = document.getElementById('slot-fruit');
+        const slotReel = document.getElementById('slot-reel');
         const startBtn = document.getElementById('start-btn');
         const statusText = document.getElementById('connection-status');
         const roomNameText = document.getElementById('room-name');
+        
+        // 오디오 객체
+        const soundSpin = document.getElementById('sound-spin');
+        const soundWin = document.getElementById('sound-win');
 
-        // URL 파라미터에서 방 이름 가져오기 (기본값: festival1)
         const urlParams = new URLSearchParams(window.location.search);
         const roomId = urlParams.get('room') || 'festival1';
         roomNameText.innerText = roomId;
@@ -202,11 +217,9 @@
         let isSpinning = false;
         let lastTriggerTime = 0;
 
-        // DB 참조 경로 설정 (방 이름 기준)
         const spinRef = ref(db, `rooms/${roomId}/spinTrigger`);
         const connectedRef = ref(db, ".info/connected");
 
-        // 연결 상태 감지
         onValue(connectedRef, (snap) => {
             if (snap.val() === true) {
                 statusText.innerText = "연결됨 🟢";
@@ -215,77 +228,89 @@
             }
         });
 
-        // 🌟 수정된 부분 1: 스핀 이벤트 감지 및 네트워크 지연 보정
         onValue(spinRef, (snapshot) => {
             const triggerTime = snapshot.val();
-            
-            // 새로운 스핀 이벤트가 발생했고, 현재 돌고 있지 않다면
             if (triggerTime && triggerTime > lastTriggerTime) {
                 lastTriggerTime = triggerTime;
 
-                // 서버를 거쳐 오느라 늦은 시간(네트워크 지연) 계산
                 let delay = Date.now() - triggerTime;
-                
-                // 만약 기기 간 시계가 안 맞아서 음수가 나오거나 렉이 심하면 예외 처리
                 if (delay < 0 || delay > 2000) delay = 0; 
                 
-                // 원래 스핀 시간(2500ms)에서 지연된 시간만큼 빼서 멈추는 타이밍을 강제로 맞춤
-                const targetDuration = 2500 - delay;
+                // 🌟 전체 스핀 시간을 4.5초(4500ms)로 길게 변경
+                const targetDuration = 4500 - delay;
 
                 startSpinning(targetDuration);
             }
         });
 
-        // 시작 버튼 클릭 이벤트
         startBtn.addEventListener('click', () => {
             if (isSpinning) return;
-            
-            // 버튼 눌림 효과 추가
             startBtn.classList.add('pressed');
             setTimeout(() => startBtn.classList.remove('pressed'), 200);
 
-            // DB에 현재 시간을 기록하여 모든 클라이언트(화면)에 스핀 명령 전송
-            set(spinRef, Date.now()).catch((error) => {
-                console.error("Firebase 에러: ", error);
-                alert("서버 연결에 문제가 있습니다.");
-            });
+            set(spinRef, Date.now()).catch((error) => console.error(error));
         });
 
-        // 🌟 수정된 부분 2: 보정된 시간(duration)을 전달받아 애니메이션 실행
         function startSpinning(duration) {
             isSpinning = true;
             startBtn.disabled = true;
             statusText.innerText = "돌아가는 중... 🌀";
-            slotFruit.classList.add('blur-effect');
 
-            let spinCount = 0;
-            // 0.05초마다 과일 변경 (빠르게 돌아가는 효과)
-            const spinInterval = setInterval(() => {
-                slotFruit.innerText = fruits[spinCount % 3];
-                spinCount++;
-            }, 50);
+            // 사운드 재생 (처음부터 재생되도록 시간 초기화)
+            soundSpin.currentTime = 0;
+            soundSpin.play().catch(e => console.log("자동재생 방지됨"));
 
-            // 고정된 2.5초가 아니라, 지연 보정된 시간(duration) 뒤에 멈춤!
-            setTimeout(() => {
-                clearInterval(spinInterval);
-                slotFruit.classList.remove('blur-effect');
-                
-                // === 독립적인 랜덤 확률 도출 (1/3 확률) ===
-                const randomResult = fruits[Math.floor(Math.random() * 3)];
-                slotFruit.innerText = randomResult;
+            // 1. 기존 릴 초기화
+            slotReel.innerHTML = '';
 
-                // 결과 이펙트
-                slotFruit.classList.add('shake-animation');
-                setTimeout(() => slotFruit.classList.remove('shake-animation'), 500);
+            // 2. 굴러갈 과일 띠(Reel) 생성 (총 40개의 과일을 랜덤하게 배치)
+            const totalItems = 40;
+            for(let i=0; i < totalItems - 1; i++) {
+                const div = document.createElement('div');
+                div.className = 'slot-item';
+                div.innerText = fruits[Math.floor(Math.random() * 3)];
+                slotReel.appendChild(div);
+            }
+
+            // 3. 마지막 도착지점(결과) 과일 세팅 (독립적 1/3 확률)
+            const randomResult = fruits[Math.floor(Math.random() * 3)];
+            const targetDiv = document.createElement('div');
+            targetDiv.className = 'slot-item';
+            targetDiv.innerText = randomResult;
+            slotReel.appendChild(targetDiv);
+
+            // 4. 애니메이션 시작 (맨 위에서 맨 아래로 스크롤)
+            const itemHeight = 500; 
+            const finalY = -(totalItems - 1) * itemHeight;
+
+            const animation = slotReel.animate([
+                { transform: 'translateY(0px)' },
+                { transform: `translateY(${finalY}px)` }
+            ], {
+                duration: duration,
+                // 🌟 핵심: 처음엔 빠르다가 마지막에 스르륵 멈추는 물리 효과 (Ease-out)
+                easing: 'cubic-bezier(0.15, 0.85, 0.25, 1.1)', 
+                fill: 'forwards'
+            });
+
+            // 5. 애니메이션이 끝났을 때 처리
+            animation.onfinish = () => {
+                // 결과 효과음 및 꽃가루 재생
+                soundWin.currentTime = 0;
+                soundWin.play().catch(e => console.log("자동재생 방지됨"));
                 fireConfetti();
+
+                // 프레임 흔들림 효과
+                slotReel.parentElement.classList.add('shake-animation');
+                setTimeout(() => slotReel.parentElement.classList.remove('shake-animation'), 400);
 
                 isSpinning = false;
                 startBtn.disabled = false;
                 statusText.innerText = "연결됨 🟢";
-            }, duration); 
+            };
         }
 
-        // 축하 폭죽 효과 (Confetti)
+        // 축하 폭죽 효과
         function fireConfetti() {
             var duration = 2000;
             var end = Date.now() + duration;
@@ -296,14 +321,14 @@
                     angle: 60,
                     spread: 55,
                     origin: { x: 0 },
-                    colors: ['#ff00ff', '#00ffff', '#ffffff']
+                    colors: ['#ff00ff', '#00ffff', '#ffff00']
                 });
                 confetti({
                     particleCount: 5,
                     angle: 120,
                     spread: 55,
                     origin: { x: 1 },
-                    colors: ['#ff00ff', '#00ffff', '#ffffff']
+                    colors: ['#ff00ff', '#00ffff', '#ffff00']
                 });
 
                 if (Date.now() < end) {
