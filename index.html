@@ -155,16 +155,19 @@
             overflow: hidden; 
             position: relative;
             box-shadow: inset 0 0 50px rgba(0,0,0,0.6);
+            will-change: transform; /* GPU 가속 최적화 */
         }
 
         .slot-reel {
             display: flex; flex-direction: column; width: 100%;
+            will-change: transform; /* GPU 가속 최적화 */
         }
 
         .slot-item {
             width: 500px; height: 500px;
             display: flex; justify-content: center; align-items: center;
             font-size: 25rem; line-height: 1; flex-shrink: 0;
+            will-change: transform;
         }
 
         .start-btn {
@@ -240,8 +243,7 @@
     <div class="slot-container">
         <div class="slot-window">
             <div class="slot-reel" id="slot-reel">
-                <div class="slot-item">❓</div>
-            </div>
+                </div>
         </div>
     </div>
 
@@ -280,7 +282,7 @@
         const inputTitle = document.getElementById('input-title');
         const inputSubtitle = document.getElementById('input-subtitle');
         const inputDuration = document.getElementById('input-duration');
-        const inputWinrate = document.getElementById('input-winrate'); // 확률 인풋 추가
+        const inputWinrate = document.getElementById('input-winrate');
         const inputSound = document.getElementById('input-sound');
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -289,35 +291,53 @@
 
         const fruits = ['🍎', '🍇', '🍌'];
         let isSpinning = false;
-        let lastTriggerTime = 0;
+        let lastTriggerId = null;
+        let lastShownResult = '❓'; // 화면 깜빡임 방지용 이전 결과
         
         let currentDuration = 4500; 
         let soundEnabled = true;    
-        let currentWinRate = 60; // 🌟 기본 확률 60%
+        let currentWinRate = 60;
+
+        // 🌟 최적화 1: 50개의 과일을 페이지 로딩 시 딱 한 번만 만듭니다!
+        const totalItems = 50; 
+        for(let i = 0; i < totalItems; i++) {
+            const div = document.createElement('div');
+            div.className = 'slot-item';
+            div.innerText = (i === 0) ? lastShownResult : fruits[Math.floor(Math.random() * 3)];
+            slotReel.appendChild(div);
+        }
+        // 만들어진 아이템들을 배열로 저장해두고 글씨만 바꿔치기 합니다.
+        const reelItems = slotReel.querySelectorAll('.slot-item');
 
         const spinRef = ref(db, `rooms/${roomId}/spinTrigger`);
         const settingsRef = ref(db, `rooms/${roomId}/settings`);
         const connectedRef = ref(db, ".info/connected");
+        
+        // 🌟 최적화 2: 서버와 기기 간의 오차 시간을 구해 완벽한 동기화를 수행합니다.
+        const offsetRef = ref(db, ".info/serverTimeOffset");
+        let serverTimeOffset = 0;
+        onValue(offsetRef, (snap) => {
+            serverTimeOffset = snap.val() || 0;
+        });
+        
+        // 내 노트북 시계가 아닌 '서버의 절대 시간'을 가져오는 함수
+        const getServerTime = () => Date.now() + serverTimeOffset;
 
         onValue(connectedRef, (snap) => {
             statusText.innerText = snap.val() === true ? "연결됨🟢" : "끊김🔴";
         });
 
-        settingsBtn.addEventListener('click', () => {
-            settingsModal.classList.remove('hidden');
-        });
+        settingsBtn.addEventListener('click', () => { settingsModal.classList.remove('hidden'); });
 
         saveBtn.addEventListener('click', () => {
             soundEnabled = inputSound.checked;
-
             const newSettings = {
                 title: inputTitle.value,
                 subtitle: inputSubtitle.value,
                 duration: parseFloat(inputDuration.value) * 1000,
-                winRate: parseInt(inputWinrate.value) // 🌟 확률 저장 동기화
+                winRate: parseInt(inputWinrate.value)
             };
             set(settingsRef, newSettings);
-
             settingsModal.classList.add('hidden');
         });
 
@@ -327,60 +347,63 @@
                 if (data.title !== undefined) { mainTitle.innerText = data.title; inputTitle.value = data.title; }
                 if (data.subtitle !== undefined) { subTitle.innerText = data.subtitle; inputSubtitle.value = data.subtitle; }
                 if (data.duration !== undefined) { currentDuration = data.duration; inputDuration.value = data.duration / 1000; }
-                if (data.winRate !== undefined) { currentWinRate = data.winRate; inputWinrate.value = data.winRate; } // 🌟 확률 로드 동기화
+                if (data.winRate !== undefined) { currentWinRate = data.winRate; inputWinrate.value = data.winRate; }
             }
         });
 
-        // 🌟 버튼 클릭 시 (확률 조작 로직 핵심 부분)
+        // 시작 버튼 클릭 (서버로 신호 전송)
         startBtn.addEventListener('click', () => {
             if (isSpinning) return;
             startBtn.classList.add('pressed');
             setTimeout(() => startBtn.classList.remove('pressed'), 200);
 
-            // 1. 목표 확률(예: 60%)을 가져옵니다. 최소 확률은 순수 랜덤인 34%로 제한합니다.
+            // 즉각적인 버튼 비활성화 (피드백)
+            startBtn.disabled = true;
+
             let targetRate = currentWinRate / 100;
             if (targetRate < 0.34) targetRate = 0.34; 
             
-            // 2. 전체 매칭 확률을 목표 확률로 맞추기 위해 강제로 결과값을 통일시킬 확률(pForce)을 계산합니다.
-            // 공식: (목표확률 - 자연일치확률) / (1 - 자연일치확률)
             const pForce = (targetRate - (1/3)) / (2/3);
-            
-            // 3. 주사위를 굴려 강제 매칭을 할지 말지 결정합니다.
             const isForcedMatch = Math.random() < pForce;
-            
-            // 4. 강제 매칭 시킬 과일을 미리 하나 뽑아둡니다.
             const forcedFruit = fruits[Math.floor(Math.random() * 3)];
 
-            // DB에 스핀 시간과 함께 '조작 데이터'도 같이 보냅니다!
+            // 고유 아이디와 목표 종료 시간(서버시간 기준)을 전송
+            const triggerId = Math.random().toString(36).substring(2, 10);
+            const targetStopTime = getServerTime() + currentDuration;
+
             set(spinRef, {
-                time: Date.now(),
+                triggerId: triggerId,
+                targetStopTime: targetStopTime,
                 isForcedMatch: isForcedMatch,
                 forcedFruit: forcedFruit
             }).catch(console.error);
         });
 
-        // 스핀 이벤트 감지 (양쪽 화면 동기화)
+        // 🌟 최적화 3: 서버 신호 수신 및 애니메이션 보정 실행
         onValue(spinRef, (snapshot) => {
             const data = snapshot.val();
+            if (!data || !data.triggerId || data.triggerId === lastTriggerId) return;
             
-            // 기존 데이터 포맷(숫자)과 새로운 데이터 포맷(객체) 모두 지원하기 위한 처리
-            let triggerTime = typeof data === 'object' && data !== null ? data.time : data;
+            lastTriggerId = data.triggerId;
 
-            if (triggerTime && triggerTime > lastTriggerTime) {
-                lastTriggerTime = triggerTime;
-
-                let delay = Date.now() - triggerTime;
-                if (delay < 0 || delay > 2000) delay = 0; 
-                
-                let targetDuration = currentDuration - delay;
-                if (targetDuration < 1000) targetDuration = 1000; 
-
-                // 애니메이션 함수에 데이터(조작 정보)를 넘겨줍니다.
-                startSpinning(targetDuration, data);
+            // 남은 시간을 정확하게 계산합니다 (목표 종료 시간 - 현재 서버 시간)
+            const remainingDuration = data.targetStopTime - getServerTime();
+            
+            // 만약 네트워크가 너무 느려 이미 종료 시간이 지났다면 실행하지 않음
+            if (remainingDuration <= 0) {
+                startBtn.disabled = false;
+                return; 
             }
+
+            // 너무 비정상적으로 긴 시간이 남았다면(예외 상황) 기본 시간으로 처리
+            let safeDuration = remainingDuration;
+            if (safeDuration > currentDuration + 2000) safeDuration = currentDuration;
+
+            startOptimizedSpinning(safeDuration, data);
         });
 
-        function startSpinning(duration, spinData) {
+        // 🌟 극강의 최적화가 적용된 렌더링 함수
+        function startOptimizedSpinning(duration, spinData) {
             isSpinning = true;
             startBtn.disabled = true;
             statusText.innerText = "도는중🌀";
@@ -390,29 +413,23 @@
                 soundSpin.play().catch(e => console.log("자동재생 방지됨"));
             }
 
-            slotReel.innerHTML = '';
-            
-            const baseItemsPerSecond = 10; 
-            const totalItems = Math.floor((duration / 1000) * baseItemsPerSecond);
+            // 1. 깜빡임 방지: 이전의 결과를 첫 번째 요소에 넣어 시각적 점프를 없앱니다.
+            reelItems[0].innerText = lastShownResult;
 
-            for(let i=0; i < totalItems - 1; i++) {
-                const div = document.createElement('div');
-                div.className = 'slot-item';
-                div.innerText = fruits[Math.floor(Math.random() * 3)];
-                slotReel.appendChild(div);
+            // 2. 글자(Text)만 아주 빠르게 무작위로 바꿉니다. (DOM 생성 삭제 없음!)
+            for(let i = 1; i < totalItems - 1; i++) {
+                reelItems[i].innerText = fruits[Math.floor(Math.random() * 3)];
             }
 
-            // 🌟 마지막 결과 결정 로직 (조작이 들어갔다면 강제 과일로, 아니면 랜덤으로!)
+            // 3. 마지막 도착지점 (조작 또는 랜덤)
             let finalResult = fruits[Math.floor(Math.random() * 3)];
-            if (typeof spinData === 'object' && spinData.isForcedMatch) {
-                finalResult = spinData.forcedFruit; // 서버에서 명령한 과일로 결과 강제 변경
+            if (spinData && spinData.isForcedMatch) {
+                finalResult = spinData.forcedFruit;
             }
+            reelItems[totalItems - 1].innerText = finalResult;
+            lastShownResult = finalResult; // 다음번 시작을 위해 저장해둡니다.
 
-            const targetDiv = document.createElement('div');
-            targetDiv.className = 'slot-item';
-            targetDiv.innerText = finalResult;
-            slotReel.appendChild(targetDiv);
-
+            // 4. 애니메이션 시작 (무조건 마지막 아이템까지 스크롤)
             const itemHeight = 500; 
             const finalY = -(totalItems - 1) * itemHeight;
 
@@ -441,6 +458,7 @@
             };
         }
 
+        // 축하 폭죽 효과
         function fireConfetti() {
             var duration = 2000;
             var end = Date.now() + duration;
